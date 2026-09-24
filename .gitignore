@@ -1,0 +1,18 @@
+# Сгенерированные при запуске скриптов — содержат ключи и секреты, в git не идут
+remna-bridge-build/
+*.env
+reality.env
+eu-link.json
+wgcf.json
+wgcf-register-output.txt
+warp-outbound.json
+direct-outbound.json
+final-config.json
+final-test.json
+warp-test.json
+eu-test.json
+CLIENT.txt
+
+# Прочее
+.DS_Store
+*.swp
