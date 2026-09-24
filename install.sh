@@ -38,12 +38,13 @@ set -Eeuo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
-SCRIPT_NAME="install-remnawave.sh"
-SCRIPT_VERSION="2.0.0"
+SCRIPT_NAME="install.sh"
+SCRIPT_VERSION="2.1.0"
 
-# Откуда брать обновления. Задайте своими значениями (или через переменные
-# окружения GH_REPO/GH_BRANCH/GH_TOKEN при запуске).
-GH_REPO="${GH_REPO:-Hellon048/PremiumHostingScript}"
+# Откуда брать обновления. Файл лежит в корне репозитория (не в scripts/).
+# Публичный репозиторий — GH_TOKEN можно не задавать; для приватного
+# передайте его переменной окружения при запуске.
+GH_REPO="${GH_REPO:-Hellon048/RemnaSetup}"
 GH_BRANCH="${GH_BRANCH:-main}"
 GH_TOKEN="${GH_TOKEN:-}"
 UPDATE_CHECK="${UPDATE_CHECK:-1}"
@@ -162,7 +163,7 @@ check_for_update() {
     [[ "$GH_REPO" != *YOUR_GITHUB_LOGIN* ]] || return 0
     command -v curl >/dev/null 2>&1 || return 0
 
-    local raw_url="https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/scripts/${SCRIPT_NAME}"
+    local raw_url="https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/${SCRIPT_NAME}"
     local -a curl_auth=()
     [[ -n "$GH_TOKEN" ]] && curl_auth=(-H "Authorization: token ${GH_TOKEN}")
 

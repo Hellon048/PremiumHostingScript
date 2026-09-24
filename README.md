@@ -1,4 +1,4 @@
-# remnawave-deploy
+# RemnaSetup
 
 Один скрипт, две роли: **RU-вход** каскада Remnawave (белый IP, self-steal
 или SNI из белого списка) и **EU-выход** (self-steal + Cloudflare WARP,
@@ -15,7 +15,7 @@
 
 | Файл | Что делает |
 |---|---|
-| `scripts/install-remnawave.sh` | Ставит RU-вход или EU-выход — выбор роли в начале (`ROLE=ru` / `ROLE=eu`) |
+| `install.sh` | Ставит RU-вход или EU-выход — выбор роли в начале (`ROLE=ru` / `ROLE=eu`) |
 
 ---
 
@@ -101,26 +101,29 @@
 
 ## Быстрый старт
 
+Репозиторий публичный — клонировать не нужно, токен не нужен. На любом
+новом сервере одна команда:
+
 ### 1. EU-нода — первой
 
 ```bash
-git clone https://<токен>@github.com/<логин>/remnawave-deploy.git
-cd remnawave-deploy/scripts
-chmod +x install-remnawave.sh
-ROLE=eu bash install-remnawave.sh
+ROLE=eu bash <(curl -fsSL https://raw.githubusercontent.com/Hellon048/RemnaSetup/main/install.sh)
 ```
 
 В конце — скопируйте `vless://`-ссылку сервисного пользователя из панели
 (создайте его на только что назначенном Config Profile).
 
-### 2. RU-нода
+### 2. RU-нода — на другом сервере
 
 ```bash
-cd remnawave-deploy/scripts
-ROLE=ru bash install-remnawave.sh
+ROLE=ru bash <(curl -fsSL https://raw.githubusercontent.com/Hellon048/RemnaSetup/main/install.sh)
 ```
 
 Когда спросит — вставьте ссылку EU-ноды из шага 1.
+
+`bash <(curl ...)` (а не `curl ... | bash`) специально — так скрипт
+по-прежнему видит терминал и может задавать вопросы, а не падает с
+ошибкой "скрипт интерактивный".
 
 ### 3. Панель Remnawave (для обеих нод)
 
@@ -135,54 +138,68 @@ ROLE=ru bash install-remnawave.sh
 
 ## Полностью неинтерактивный запуск
 
+Команда всё равно должна быть `bash <(curl ...)`, а не `curl | bash` —
+при прямом pipe переменные окружения перед командой применяются только к
+`curl`, а не к `bash` на другом конце трубы, и скрипт их не увидит:
+
 ```bash
 # EU
 ROLE=eu NODE_SECRET='...' NODE_PORT=2222 CONTAINER_NAME=media-sync \
 DOMAIN=vpn.example.com EMAIL=me@example.com DECOY_TEMPLATE=3 WARP_ENABLED=1 \
-bash install-remnawave.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/Hellon048/RemnaSetup/main/install.sh)
 
 # RU
 ROLE=ru NODE_SECRET='...' NODE_PORT=2222 CONTAINER_NAME=cache-worker \
 ENTRY_MODE=1 EU_LINK='vless://...' ROUTE_TEMPLATE=1 \
-bash install-remnawave.sh
+bash <(curl -fsSL https://raw.githubusercontent.com/Hellon048/RemnaSetup/main/install.sh)
 ```
 
-Полный список переменных — `bash install-remnawave.sh --help`.
+Полный список переменных:
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Hellon048/RemnaSetup/main/install.sh) --help
+```
 
 ---
 
 ## Автообновление
 
 При каждом запуске скрипт (если не передан `--no-update`) сверяет свою
-версию с той, что лежит в этом репозитории, и предлагает обновиться перед
-началом установки.
+версию с той, что лежит в этом репозитории (`Hellon048/RemnaSetup`, уже
+зашито в скрипт по умолчанию), и предлагает обновиться перед началом
+установки.
 
-Впишите в начало `scripts/install-remnawave.sh` свой репозиторий:
-
-```bash
-GH_REPO="<ваш_логин>/remnawave-deploy"
-```
-
-Приватный репозиторий — передавайте токен при запуске:
+Если когда-нибудь сделаете форк в приватный репозиторий — передавайте
+токен при запуске:
 
 ```bash
-GH_TOKEN='ghp_...' bash install-remnawave.sh
+GH_TOKEN='ghp_...' bash install.sh
 ```
+
+(или пропишите свой `GH_REPO` в начале файла, если форк лежит не там)
 
 Отключить проверку на конкретный запуск: `--no-update` или `UPDATE_CHECK=0`.
 
 ---
 
-## Приватность репозитория
+## Репозиторий публичный — что это значит
 
-Скрипт не содержит секретов — но раскрывает архитектуру обхода
-(self-steal, каскад, переименование процессов), а в истории коммитов
-легко случайно оставить реальный домен. **Держите репозиторий приватным.**
-
-Никогда не коммитьте (см. `.gitignore`):
-- `remna-bridge-build/` — там Reality-ключи, `final-config.json`,
+Скрипт и README видны всем, но секретов в них нет — они не содержат
+SECRET_KEY, ключей или доменов. По этой же причине **никогда не
+коммитьте** (см. `.gitignore`, но лишняя внимательность не помешает):
+- `remna-bridge-build/` — там реальные Reality-ключи, `final-config.json`,
   `eu-link.json`, а для EU-роли ещё и `wgcf.json` с WARP `secretKey`
-- файлы с `SECRET_KEY`, `privateKey`, `secretKey` внутри
+- любые файлы с `SECRET_KEY`, `privateKey`, `secretKey`, реальными
+  доменами или IP внутри
+
+Проверяйте перед `git add .`, особенно после ручного редактирования
+файлов не из этого списка — случайно вставленный в коммит-месседж или
+комментарий домен тоже станет публичным и останется в истории коммитов
+навсегда (даже если потом удалить сам файл).
+
+Если понадобится вернуть приватность — GitHub → репозиторий → **Settings**
+→ низ страницы → **Danger Zone** → **Change visibility** → **Private**.
+После этого во все команды из разделов выше придётся вернуть
+`-H "Authorization: token $GH_TOKEN"`, как было раньше.
 
 ---
 
